@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { getAdminDb } from "../firebaseAdmin";
+import { getAdminDb } from "../firebaseAdmin.js";
 
 const COLLECTION = "ai_content_cache";
 
