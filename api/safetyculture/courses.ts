@@ -1,13 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { listCourses, FALLBACK_COURSES, SafetyCultureConfigError } from '../../lib/safetyculture/client';
+import { listCourses, FALLBACK_COURSES, SafetyCultureConfigError } from '../../lib/safetyculture/client.js';
 
 // NOTE: this file is a Vercel serverless function, picked up automatically
 // if this repo is deployed on Vercel using its zero-config /api convention.
-// It now shares logic with the Express route of the same path in
-// server.ts via api/safetyculture/client.ts, so both deployment paths
-// (standalone Node server vs Vercel functions) behave identically —
-// previously they used different upstream URLs and different env var
-// names and had drifted out of sync.
+// It shares logic with lib/safetyculture/client.ts so both server.ts (dev)
+// and this Vercel function stay in sync instead of drifting apart.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -17,11 +14,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
-
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
   try {
     const courses = await listCourses({ pageSize: 50 });
     return res.status(200).json({ courses });
