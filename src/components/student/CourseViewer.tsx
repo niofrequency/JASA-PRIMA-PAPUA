@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Course, CourseModule, Lesson, StudentCourseProgress, Quiz, QuizQuestion, QuizSubmission } from '../../types';
 import { askCourseChatbot } from '../../services/aiService';
 import { 
-  ArrowLeft, Play, Pause, CheckCircle, Circle, BookOpen, FileText, 
-  HelpCircle, Volume2, Maximize, RotateCcw, MessageCircle, Send, 
+  ArrowLeft, CheckCircle, Circle, BookOpen, FileText, 
+  HelpCircle, RotateCcw, MessageCircle, Send, 
   Bot, X, Lightbulb, User
 } from 'lucide-react';
  
@@ -37,7 +37,6 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({
   const [activePaneTab, setActivePaneTab] = useState<'video' | 'reading' | 'quiz'>('video');
 
   // Video State
-  const [isPlaying, setIsPlaying] = useState(false);
 
   // Quiz State
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
@@ -260,64 +259,34 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({
         {/* Left Pane: Video & Text Content Area */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
           
-          {/* Simulated Video Player */}
-          <div className="relative aspect-video bg-[#0F172A] border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xl group flex flex-col items-center justify-center">
-            
-            {/* Background Thumbnail Image with Dark Overlay */}
-            <img
-              src={course.thumbnailUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800'}
-              alt="Course Thumbnail"
-              className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/60 to-transparent" />
-
-            {/* Simulated Video Overlay Content */}
-            <div className="relative z-10 text-center space-y-4 px-6 max-w-xl animate-fadeIn">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 bg-slate-900/90 border border-cyan-500/30 rounded-full text-[10px] font-bold text-cyan-300 shadow-lg shadow-cyan-900/50">
-                <span>{activeLesson?.duration || '20 mins'}</span>
-                <span>•</span>
-                <span>HD Video Lecture</span>
+          {/* Video Player — only rendered when a real video URL exists.
+              Previously this always rendered a fully simulated player
+              (fake "HD Video Lecture" badge, fake play button, fake
+              "Simulated Technical Video Stream" text) even when no video
+              existed for the lesson, which is misleading. */}
+          {activeLesson?.videoUrl ? (
+            <div className="relative aspect-video bg-[#0F172A] border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xl">
+              <video
+                key={activeLesson.videoUrl}
+                src={activeLesson.videoUrl}
+                controls
+                className="w-full h-full object-contain bg-black"
+              >
+                Your browser doesn't support embedded video.
+              </video>
+            </div>
+          ) : (
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="px-2.5 py-1 bg-cyan-50 text-[#0EA5E9] rounded-lg text-[10px] font-extrabold uppercase tracking-wider border border-cyan-100">
+                  {activeLesson?.duration || 'Reading'}
+                </span>
               </div>
-
-              <h2 className="text-lg sm:text-2xl font-extrabold text-white leading-snug">
+              <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 leading-snug">
                 {activeLesson?.title || 'Select a Lesson'}
               </h2>
-
-              <p className="text-xs text-slate-300 line-clamp-2 font-medium">
-                {activeLesson?.videoPlaceholderTopic || activeLesson?.content?.slice(0, 120) || 'Loading content...'}
-              </p>
-
-              {/* Play/Pause Center Button */}
-              <button
-                id="video-player-toggle-btn"
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="w-16 h-16 rounded-full bg-[#0EA5E9] hover:bg-[#0284C7] text-white flex items-center justify-center mx-auto shadow-xl shadow-[#0EA5E9]/30 transition-transform transform hover:scale-110 cursor-pointer"
-              >
-                {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
-              </button>
-
-              {isPlaying && (
-                <div className="text-xs font-bold text-[#0EA5E9] animate-pulse">
-                  ▶ Playing Simulated Technical Video Stream (PT JPP HD)
-                </div>
-              )}
             </div>
-
-            {/* Video Controls Bottom Bar */}
-            <div className="absolute bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800 px-4 py-2.5 flex items-center justify-between text-xs text-slate-400 font-medium">
-              <div className="flex items-center space-x-3">
-                <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-white cursor-pointer transition-colors">
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                </button>
-                <span>00:00 / {activeLesson?.duration || '--:--'}</span>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Volume2 className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
-                <Maximize className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Lesson Content Tab Bar */}
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-6 shadow-sm">
