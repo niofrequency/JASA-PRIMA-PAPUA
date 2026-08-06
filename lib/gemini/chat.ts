@@ -5,7 +5,7 @@ export interface ChatTurn {
   text: string;
 }
 
-/**
+/** 
  * Answers a learner's question about the current lesson, grounded strictly
  * in the lesson content passed in (no outside knowledge for safety-critical
  * claims — see prompt below). Runs server-side only; the frontend never
