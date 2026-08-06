@@ -57,6 +57,34 @@ export async function generateCourseFromSafetyCulture(
 }
 
 /**
+ * Imports a course from a manually-pasted SafetyCulture course export JSON
+ * (the instructor copies this from their own authenticated browser session
+ * — see lib/safetyculture/parseExport.ts for why this exists instead of an
+ * automated API call). Parses the real slide content server-side and runs
+ * it through the same Gemini enhancement pipeline as the catalog import.
+ */
+export async function importSafetyCultureExport(rawExportJson: string): Promise<GeneratedCourseData> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawExportJson);
+  } catch {
+    throw new Error('That doesn\'t look like valid JSON — make sure you copied the full response body, including the surrounding { }.');
+  }
+
+  const response = await fetch('/api/ai/import-safetyculture-export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(parsed),
+  });
+
+  const result = await response.json();
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || `Import failed with status ${response.status}`);
+  }
+  return result.course;
+}
+
+/**
  * Asks the in-course AI chatbot a question, grounded in the current
  * lesson's content. Calls the backend (server-side Gemini) — see
  * server.ts POST /api/ai/chat + api/gemini/chat.ts.
