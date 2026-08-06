@@ -1,6 +1,6 @@
-import { getGeminiClient, GEMINI_MODEL } from "./client";
-import { getCachedLessonContent, setCachedLessonContent } from "../cache/geminiCache";
-import type { CourseModule, QuizQuestion } from "../../src/types";
+import { getGeminiClient, GEMINI_MODEL } from "./client.js";
+import { getCachedLessonContent, setCachedLessonContent } from "../cache/geminiCache.js";
+import type { CourseModule, QuizQuestion } from "../../src/types.js";
 
 // Mirrors SCSlideRaw / SCLessonRaw / SCCourseFullRaw in
 // src/services/safetyCultureService.ts. Duplicated here (rather than
