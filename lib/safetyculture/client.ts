@@ -10,12 +10,19 @@
  * same auth header, same endpoint paths, and the same fallback behavior —
  * previously these had drifted (different hosts, different env var names).
  *
- * ENDPOINT PATHS: confirmed against developer.safetyculture.com/reference
- * as of this writing:
+ * ENDPOINT PATHS: confirmed against SafetyCulture's published OpenAPI
+ * schema (developer.safetyculture.com/reference/*.md) as of this writing:
  *   GET  /training/courses/v1                    (list courses)
  *   GET  /training/courses/v1/{courseId}/lessons  (list lesson metadata for a course)
- *   GET  /training/lessons/v1/{lessonId}          (full lesson detail, incl. slides)
+ *   GET  /training/lessons/v1/{lessonId}          (lesson detail — see slide warning below)
  * on host https://api.safetyculture.io
+ *
+ * CONFIRMED response shapes (pulled directly from SafetyCulture's OpenAPI
+ * JSON, not guessed): "list courses" returns { totalCount, items: [...] }
+ * with camelCase Course fields (thumbnailUrl, duration IN SECONDS,
+ * createdDatetime, no `category` field at all). Query params are also
+ * camelCase (pageSize, page, courseIds). See mapCourse() below for the
+ * translation into the frontend's expected snake_case-ish shape.
  *
  * NOTE ON REGION/BASE URL: the SafetyCulture docs for the Training API
  * resolve to api.safetyculture.io (not a per-region api.au.safetyculture.com
@@ -23,13 +30,17 @@
  * host, override it with SAFETYCULTURE_BASE_URL — everything below reads
  * the base URL from one place.
  *
- * NOTE ON SLIDE SCHEMA: the exact JSON shape of a slide inside the "Get
- * lesson by ID" response wasn't something I could pull from the docs site
- * in this session (the response schema panel is client-rendered). The
- * mapping in `normalizeSlide()` below tries several plausible field-name
- * variants defensively, but you should confirm the real shape by hitting
- * the endpoint once (e.g. via the docs' "Try It" panel, or a manual curl)
- * and adjust `normalizeSlide` / `normalizeLesson` if the field names differ.
+ * ⚠️ UNRESOLVED — SLIDE CONTENT: SafetyCulture's documented schema for
+ * "Get lesson by ID" (traininglessonsservice_getlessonbyid) does NOT
+ * include a slides array or slideCount — only
+ * { id, title, description, created_datetime, modified_datetime, external_id }.
+ * As far as the published docs show, there is no endpoint that returns
+ * actual slide content (the paragraphs/bullets/quiz text). getLessonById()
+ * and getFullCourse() below still assume a `slides` field exists (kept from
+ * the original plan) — this needs to be confirmed against a real account
+ * before relying on it. If it's genuinely absent, the "import + enhance via
+ * Gemini" flow needs a different content source or a support conversation
+ * with SafetyCulture about what surfaces slide content.
  */
 
 const DEFAULT_BASE_URL = "https://api.safetyculture.io";
@@ -90,27 +101,49 @@ async function scFetch<T>(path: string, init?: RequestInit): Promise<T> {
   throw lastErr instanceof Error ? lastErr : new Error("SafetyCulture API request failed after retries.");
 }
 
-// --- Raw response shapes (best-effort — see NOTE ON SLIDE SCHEMA above) ---
+// --- Raw response shapes ---
+// CONFIRMED against SafetyCulture's actual published OpenAPI schema
+// (developer.safetyculture.com/reference/trainingcoursesservice_getcourses.md)
+// as of this writing. Query params and the Course object are camelCase.
 
 interface RawCourse {
   id: string;
+  externalId?: string;
   title: string;
   description?: string;
-  language?: string;
-  category?: string;
-  thumbnail_url?: string;
-  lesson_count?: number;
-  duration_minutes?: number;
-  created_at?: string;
+  status?: string; // Draft | Scheduled | Published | Archived
+  locale?: string;
+  isMandatory?: boolean;
+  dueBy?: string;
+  duration?: number; // seconds
+  thumbnailUrl?: string;
+  createdDatetime?: string;
+  modifiedDatetime?: string;
+  logoUrl?: string;
+  brandingImageUrl?: string;
+  isPublished?: boolean;
+  lessonCount?: number;
+  publishedDatetime?: string;
+  publishedVersionNumber?: number;
 }
 
 interface RawLessonSummary {
   id: string;
+  externalId?: string;
   title: string;
   description?: string;
-  slide_count?: number;
+  status?: string;
+  minimumScore?: number;
 }
 
+// UNCONFIRMED / LIKELY WRONG: SafetyCulture's documented schema for
+// "Get lesson by ID" (traininglessonsservice_getlessonbyid) does NOT
+// include a slides array or slideCount at all — only
+// { id, title, description, created_datetime, modified_datetime, external_id }.
+// This means slide content may not be retrievable via this endpoint as
+// documented. The shape below is speculative (kept from the original plan)
+// and getLessonById()/getFullCourse() below will very likely need rework
+// once this is confirmed one way or the other against a real account.
 interface RawSlide {
   id?: string;
   slide_id?: string;
@@ -174,9 +207,43 @@ function normalizeLesson(raw: RawLessonFull): SCLessonNormalized {
   };
 }
 
-// --- Public API ---
+// --- Mapped output shape ---
+// This is what api/safetyculture/courses.ts returns and what
+// src/services/safetyCultureService.ts (frontend) expects — kept as its
+// own shape so the real API's field names can change/get corrected here
+// without touching the frontend or the route handler.
 
-export const FALLBACK_COURSES: RawCourse[] = [
+export interface MappedCourse {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  thumbnail_url?: string;
+  duration_minutes?: number;
+  created_at?: string;
+}
+
+function deriveCategory(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("electric") || t.includes("lockout") || t.includes("loto")) return "Electrical Safety";
+  if (t.includes("machine") || t.includes("mining") || t.includes("excavator") || t.includes("heavy")) return "Heavy Machinery & Mining";
+  if (t.includes("fire") || t.includes("emergency")) return "Emergency Response";
+  return "Occupational Safety & K3";
+}
+
+function mapCourse(raw: RawCourse): MappedCourse {
+  return {
+    id: raw.id,
+    title: raw.title,
+    description: raw.description,
+    category: deriveCategory(raw.title || ""),
+    thumbnail_url: raw.thumbnailUrl,
+    duration_minutes: raw.duration ? Math.round(raw.duration / 60) : undefined,
+    created_at: raw.createdDatetime,
+  };
+}
+
+export const FALLBACK_COURSES: MappedCourse[] = [
   {
     id: "sc-course-01",
     title: "Global K3 Industrial Risk Assessment",
@@ -193,15 +260,20 @@ export const FALLBACK_COURSES: RawCourse[] = [
   },
 ];
 
-/** GET /training/courses/v1 — list courses (catalog view). */
-export async function listCourses(params?: { pageSize?: number; page?: number; courseIds?: string[] }): Promise<RawCourse[]> {
+/**
+ * GET /training/courses/v1 — list courses (catalog view).
+ * CONFIRMED shape: query params are camelCase (pageSize/page/courseIds),
+ * response is { totalCount, items: [...] } — NOT { courses: [...] }.
+ * Returns the frontend-facing MappedCourse shape, not the raw API shape.
+ */
+export async function listCourses(params?: { pageSize?: number; page?: number; courseIds?: string[] }): Promise<MappedCourse[]> {
   const qs = new URLSearchParams();
-  if (params?.pageSize) qs.set("page_size", String(params.pageSize));
+  if (params?.pageSize) qs.set("pageSize", String(params.pageSize));
   if (params?.page) qs.set("page", String(params.page));
-  for (const id of params?.courseIds || []) qs.append("course_ids", id);
+  for (const id of params?.courseIds || []) qs.append("courseIds", id);
   const query = qs.toString() ? `?${qs.toString()}` : "";
-  const data = await scFetch<{ courses?: RawCourse[]; data?: RawCourse[] }>(`/training/courses/v1${query}`);
-  return data.courses || data.data || [];
+  const data = await scFetch<{ totalCount?: number; items?: RawCourse[] }>(`/training/courses/v1${query}`);
+  return (data.items || []).map(mapCourse);
 }
 
 /** GET /training/courses/v1/{courseId}/lessons — lesson metadata only (no slide content). */
@@ -228,7 +300,7 @@ export async function getLessonById(lessonId: string): Promise<RawLessonFull> {
  */
 export async function getFullCourse(courseId: string): Promise<SCCourseFullNormalized> {
   const [courses, lessonSummaries] = await Promise.all([
-    listCourses({ courseIds: [courseId] }).catch(() => [] as RawCourse[]), // best-effort title/description
+    listCourses({ courseIds: [courseId] }).catch(() => [] as MappedCourse[]), // best-effort title/description
     getLessonsByCourseId(courseId),
   ]);
 
