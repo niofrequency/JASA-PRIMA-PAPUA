@@ -1,4 +1,4 @@
-import { getGeminiClient, GEMINI_MODEL } from "./client";
+import { getGeminiClient, GEMINI_MODEL } from "./client.js";
 
 export interface ChatTurn {
   role: "user" | "ai";
