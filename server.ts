@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { generateFreshCourse } from "./lib/gemini/generateCourse.js";
 import { generateCourseFromSafetyCultureServer, type SCCourseFullRaw } from "./lib/gemini/courseGenerator.js";
 import { answerCourseChatQuestion, type ChatTurn } from "./lib/gemini/chat.js";
+import { parseSafetyCultureCourseExport } from "./lib/safetyculture/parseExport.js";
 import {
   listCourses as scListCourses,
   getFullCourse as scGetFullCourse,
@@ -16,7 +17,10 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  // Default express.json() limit is 100kb — real SafetyCulture course
+  // exports (pasted via the "Import SafetyCulture Export" feature) can run
+  // into several hundred KB, mostly from duplicated per-lesson custom CSS.
+  app.use(express.json({ limit: "15mb" }));
 
   // API Route for AI Course Generation
   app.post("/api/ai/generate-course", async (req, res) => {
@@ -29,6 +33,26 @@ async function startServer() {
     } catch (err: any) {
       console.error("Error generating course with Gemini API:", err);
       res.status(500).json({ success: false, error: err.message || "Failed to generate course" });
+    }
+  });
+
+  // API Route for importing a manually-pasted SafetyCulture course export
+  // (see lib/safetyculture/parseExport.ts for why this exists instead of
+  // an automated call to SafetyCulture)
+  app.post("/api/ai/import-safetyculture-export", async (req, res) => {
+    try {
+      const scData = parseSafetyCultureCourseExport(req.body);
+      if (scData.lessons.every((l) => l.slides.length === 0)) {
+        return res.status(400).json({
+          success: false,
+          error: "Parsed the course structure, but couldn't extract any slide content from it.",
+        });
+      }
+      const course = await generateCourseFromSafetyCultureServer(scData);
+      res.json({ success: true, course, lessonsParsed: scData.lessons.length });
+    } catch (err: any) {
+      console.error("Error importing SafetyCulture export:", err);
+      res.status(400).json({ success: false, error: err.message || "Failed to parse and import the pasted export." });
     }
   });
 
