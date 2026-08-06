@@ -1,16 +1,16 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { generateFreshCourse } from "./lib/gemini/generateCourse";
-import { generateCourseFromSafetyCultureServer, type SCCourseFullRaw } from "./lib/gemini/courseGenerator";
-import { answerCourseChatQuestion, type ChatTurn } from "./lib/gemini/chat";
+import { generateFreshCourse } from "./lib/gemini/generateCourse.js";
+import { generateCourseFromSafetyCultureServer, type SCCourseFullRaw } from "./lib/gemini/courseGenerator.js";
+import { answerCourseChatQuestion, type ChatTurn } from "./lib/gemini/chat.js";
 import {
   listCourses as scListCourses,
   getFullCourse as scGetFullCourse,
   FALLBACK_COURSES,
   SafetyCultureConfigError,
   SafetyCultureApiError,
-} from "./lib/safetyculture/client";
+} from "./lib/safetyculture/client.js";
 
 async function startServer() {
   const app = express();
