@@ -1,0 +1,8 @@
+{
+  "name": "PT. JASA PRIMA PAPUA",
+  "description": "Training Center Management System and Learning Portal for PT. JASA PRIMA PAPUA featuring Instructor AI Course Creator, Student Portal, Quizzes, Certificates, and Analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
