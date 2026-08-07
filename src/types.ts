@@ -54,6 +54,11 @@ export interface Course {
   description: string;
   instructorName: string;
   instructorRole?: string;
+  // Ownership — which instructor account created this course. Optional for
+  // backward compatibility with courses created before this field existed;
+  // treat missing instructorId as "unassigned/legacy" (admin-manageable
+  // only) rather than assuming any particular instructor owns it.
+  instructorId?: string;
   thumbnailUrl: string;
   estimatedHours: string;
   prerequisites: string;
