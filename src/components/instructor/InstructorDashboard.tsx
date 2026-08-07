@@ -1,7 +1,7 @@
 import React from 'react';
 import { Course, StudentAnalyticsItem } from '../../types';
 import { InstructorTab } from './InstructorSidebar';
-import { BookOpen, Users, Award, Sparkles, Plus, CheckCircle2, AlertCircle, ArrowUpRight, ArrowRight, Eye, ToggleLeft, ToggleRight, Edit3 } from 'lucide-react';
+import { BookOpen, Users, Award, Sparkles, Plus, CheckCircle2, AlertCircle, ArrowUpRight, ArrowRight, Eye, ToggleLeft, ToggleRight, Edit3, Trash2, UserCircle2 } from 'lucide-react';
 
 interface InstructorDashboardProps {
   courses: Course[];
@@ -9,6 +9,9 @@ interface InstructorDashboardProps {
   onSelectTab: (tab: InstructorTab) => void;
   onTogglePublishCourse: (courseId: string) => void;
   onEditCourse: (course: Course) => void;
+  onDeleteCourse: (courseId: string) => void;
+  isAdminView: boolean;
+  getInstructorName: (instructorId?: string) => string;
 }
 
 export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
@@ -17,7 +20,16 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   onSelectTab,
   onTogglePublishCourse,
   onEditCourse,
+  onDeleteCourse,
+  isAdminView,
+  getInstructorName,
 }) => {
+  const handleDeleteClick = (course: Course) => {
+    const confirmed = window.confirm(
+      `Delete "${course.title}" permanently? This cannot be undone — all modules, lessons, and quizzes in this course will be removed.`
+    );
+    if (confirmed) onDeleteCourse(course.id);
+  };
   const totalCourses = courses.length;
   const publishedCoursesCount = courses.filter((c) => c.isPublished).length;
   const totalEnrolledStudents = courses.reduce((sum, c) => sum + c.enrolledStudentsCount, 0);
@@ -131,6 +143,7 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               <tr>
                 <th className="py-3.5 px-5">Course Title</th>
                 <th className="py-3.5 px-5">Category</th>
+                {isAdminView && <th className="py-3.5 px-5">Instructor</th>}
                 <th className="py-3.5 px-5">Modules</th>
                 <th className="py-3.5 px-5">Enrolled</th>
                 <th className="py-3.5 px-5">Status</th>
@@ -158,6 +171,14 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       {course.category}
                     </span>
                   </td>
+                  {isAdminView && (
+                    <td className="py-4 px-5">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                        <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                        {getInstructorName(course.instructorId)}
+                      </span>
+                    </td>
+                  )}
                   <td className="py-4 px-5 font-bold text-[#0F172A]">
                     {course.modules.length} Modules
                   </td>
@@ -201,6 +222,15 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <span>Publish Live</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      id={`delete-course-btn-${course.id}`}
+                      onClick={() => handleDeleteClick(course)}
+                      title="Delete Course"
+                      className="p-1.5 rounded-xl text-red-500 hover:text-white hover:bg-red-500 border border-red-200 hover:border-red-500 transition-colors inline-flex items-center cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>
