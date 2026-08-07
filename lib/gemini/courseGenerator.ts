@@ -1,4 +1,4 @@
-import { getGeminiClient, GEMINI_MODEL } from "./client.js";
+import { getGeminiClient, GEMINI_MODEL, generateContentWithRetry } from "./client.js";
 import { getCachedLessonContent, setCachedLessonContent } from "../cache/geminiCache.js";
 import type { CourseModule, QuizQuestion } from "../../src/types.js";
 
@@ -98,7 +98,7 @@ export async function generateCourseFromSafetyCultureServer(
         ${combinedSlideContent}
       `;
 
-      const contentRes = await ai.models.generateContent({
+      const contentRes = await generateContentWithRetry(ai, {
         model: GEMINI_MODEL,
         contents: contentPrompt,
       });
@@ -125,7 +125,7 @@ export async function generateCourseFromSafetyCultureServer(
         ${combinedSlideContent}
       `;
 
-      const quizRes = await ai.models.generateContent({
+      const quizRes = await generateContentWithRetry(ai, {
         model: GEMINI_MODEL,
         contents: quizPrompt,
         config: { responseMimeType: "application/json" },
