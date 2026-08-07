@@ -309,18 +309,22 @@ function AppContent() {
       return;
     }
 
-    setCourses((prev) => [importedCourse, ...prev]);
+    // Stamp ownership to the instructor who imported it — this is what
+    // scopes "My Course Library" and student-progress analytics later.
+    const ownedCourse: Course = { ...importedCourse, instructorId: currentUser?.id };
+
+    setCourses((prev) => [ownedCourse, ...prev]);
 
     try {
-      await setDoc(doc(db, 'courses', importedCourse.id), importedCourse);
+      await setDoc(doc(db, 'courses', ownedCourse.id), ownedCourse);
     } catch (error) {
       console.error("Error syncing imported course to Firebase:", error);
     }
 
     setStudentProgress((prev) => ({
       ...prev,
-      [importedCourse.id]: {
-        courseId: importedCourse.id,
+      [ownedCourse.id]: {
+        courseId: ownedCourse.id,
         completedLessonIds: [],
         quizSubmissions: {},
         overallPercent: 0,
@@ -328,7 +332,7 @@ function AppContent() {
       },
     }));
 
-    setImportNotification(`Successfully imported "${importedCourse.title}" into JASA-PRIMA-PAPUA!`);
+    setImportNotification(`Successfully imported "${ownedCourse.title}" into JASA-PRIMA-PAPUA!`);
     setTimeout(() => setImportNotification(null), 4000);
   };
 
@@ -368,18 +372,19 @@ function AppContent() {
   };
 
   const handlePublishNewAICourse = async (newCourse: Course) => {
-    setCourses((prev) => [newCourse, ...prev]);
+    const ownedCourse: Course = { ...newCourse, instructorId: currentUser?.id };
+    setCourses((prev) => [ownedCourse, ...prev]);
 
     try {
-      await setDoc(doc(db, 'courses', newCourse.id), newCourse);
+      await setDoc(doc(db, 'courses', ownedCourse.id), ownedCourse);
     } catch (error) {
       console.error("Error saving new AI course to Firebase:", error);
     }
 
     setStudentProgress((prev) => ({
       ...prev,
-      [newCourse.id]: {
-        courseId: newCourse.id,
+      [ownedCourse.id]: {
+        courseId: ownedCourse.id,
         completedLessonIds: [],
         quizSubmissions: {},
         overallPercent: 0,
@@ -392,7 +397,7 @@ function AppContent() {
         id: `sa-${Date.now()}`,
         studentName: DEFAULT_STUDENT.name,
         studentId: DEFAULT_STUDENT.studentId!,
-        courseTitle: newCourse.title,
+        courseTitle: ownedCourse.title,
         progressPercent: 0,
         averageQuizScore: 0,
         status: 'In Progress',
@@ -400,6 +405,25 @@ function AppContent() {
       },
       ...prev,
     ]);
+  };
+
+  // Deletes a course entirely. Callers (MyCourses / InstructorDashboard) are
+  // responsible for only exposing the delete action when the current user
+  // is allowed to (their own course, or admin) — this handler itself
+  // doesn't re-check permissions, since the UI already gates it and there's
+  // no separate backend authorization layer here (Firestore security rules
+  // are the real enforcement point and should mirror this same rule:
+  // allow delete if request.auth.uid == resource.data.instructorId or the
+  // user has an admin custom claim/role).
+  const handleDeleteCourse = async (courseId: string) => {
+    setCourses((prev) => prev.filter((c) => c.id !== courseId));
+
+    try {
+      await deleteDoc(doc(db, 'courses', courseId));
+    } catch (error) {
+      console.error("Error deleting course from Firebase:", error);
+      alert("Failed to delete the course. Please try again.");
+    }
   };
 
   // --- Student Progress & Quiz Handlers ---
@@ -515,6 +539,21 @@ function AppContent() {
 
   const visibleStudentCourses = courses.filter((c) => c.isPublished);
 
+  // Instructors only manage their own courses; Admin sees and can manage
+  // every course, org-wide. Courses created before instructorId existed
+  // (legacy/unassigned) are only shown to Admin, not to any instructor —
+  // safer default than guessing an owner or showing them to everyone.
+  const isAdminView = currentUser?.role === 'admin';
+  const myManagedCourses = isAdminView
+    ? courses
+    : courses.filter((c) => c.instructorId === currentUser?.id);
+
+  const getInstructorName = (instructorId?: string): string => {
+    if (!instructorId) return 'Unassigned';
+    const match = usersList.find((u) => u.id === instructorId);
+    return match?.name || 'Unknown Instructor';
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
@@ -618,19 +657,25 @@ function AppContent() {
 
             {instructorTab === 'dashboard' && (
               <InstructorDashboard
-                courses={courses}
+                courses={myManagedCourses}
                 studentAnalytics={analytics}
                 onSelectTab={(tab) => setInstructorTab(tab)}
                 onTogglePublishCourse={handleTogglePublishCourse}
                 onEditCourse={handleOpenEditCourse}
+                onDeleteCourse={handleDeleteCourse}
+                isAdminView={isAdminView}
+                getInstructorName={getInstructorName}
               />
             )}
             {instructorTab === 'courses' && (
               <MyCourses
-                courses={courses}
+                courses={myManagedCourses}
                 onSelectTab={(tab) => setInstructorTab(tab)}
                 onTogglePublishCourse={handleTogglePublishCourse}
                 onEditCourse={handleOpenEditCourse}
+                onDeleteCourse={handleDeleteCourse}
+                isAdminView={isAdminView}
+                getInstructorName={getInstructorName}
               />
             )}
             {instructorTab === 'ai-creator' && (
