@@ -1,4 +1,4 @@
-import { getGeminiClient, GEMINI_MODEL } from "./client.js";
+import { getGeminiClient, GEMINI_MODEL, generateContentWithRetry } from "./client.js";
 
 export interface GenerateCourseParams {
   subject: string;
@@ -85,7 +85,7 @@ Return ONLY a valid JSON object matching this exact TypeScript structure:
   ]
 }`;
 
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: GEMINI_MODEL,
     contents: prompt,
     config: {
