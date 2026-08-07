@@ -71,7 +71,7 @@ export const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
   ];
 
   return (
-    <aside className="w-full md:w-64 bg-[#E2E8F0] text-[#0F172A] border-r border-[#CBD5E1] flex flex-col justify-between flex-shrink-0">
+    <aside className="w-full md:w-80 bg-[#E2E8F0] text-[#0F172A] border-r border-[#CBD5E1] flex flex-col justify-between flex-shrink-0">
       <div className="p-4 space-y-6">
         {/* Profile Header */}
         <div className="p-3.5 bg-white border border-[#CBD5E1] rounded-2xl flex items-center space-x-3 shadow-sm">
