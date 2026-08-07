@@ -38,7 +38,7 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   );
 
   return (
-    <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto">
+    <div className="space-y-8 animate-fadeIn w-full">
       
       {/* Top Welcome Banner */}
       <div className="p-6 bg-white border border-[#E2E8F0] rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
@@ -196,42 +196,39 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       {course.isPublished ? 'Published' : 'Draft / Private'}
                     </span>
                   </td>
-                  <td className="py-4 px-5 text-right space-x-2">
-                    <button
-                      id={`edit-course-btn-${course.id}`}
-                      onClick={() => onEditCourse(course)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0EA5E9]/10 hover:bg-[#0EA5E9]/20 text-[#0EA5E9] border border-[#0EA5E9]/30 transition-colors inline-flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </button>
+                  <td className="py-4 px-5">
+                    <div className="flex items-center justify-end gap-2 flex-nowrap">
+                      <button
+                        id={`edit-course-btn-${course.id}`}
+                        onClick={() => onEditCourse(course)}
+                        title="Edit Course"
+                        className="p-2 rounded-xl bg-[#0EA5E9]/10 hover:bg-[#0EA5E9]/20 text-[#0EA5E9] border border-[#0EA5E9]/30 transition-colors inline-flex items-center cursor-pointer"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
 
-                    <button
-                      id={`toggle-publish-btn-${course.id}`}
-                      onClick={() => onTogglePublishCourse(course.id)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#F8FAFC] hover:bg-[#F1F5F9] text-slate-700 border border-[#E2E8F0] transition-colors inline-flex items-center space-x-1.5 cursor-pointer"
-                    >
-                      {course.isPublished ? (
-                        <>
+                      <button
+                        id={`toggle-publish-btn-${course.id}`}
+                        onClick={() => onTogglePublishCourse(course.id)}
+                        title={course.isPublished ? 'Unpublish' : 'Publish Live'}
+                        className="p-2 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] text-slate-700 border border-[#E2E8F0] transition-colors inline-flex items-center cursor-pointer"
+                      >
+                        {course.isPublished ? (
                           <ToggleRight className="w-4 h-4 text-emerald-600" />
-                          <span>Unpublish</span>
-                        </>
-                      ) : (
-                        <>
+                        ) : (
                           <ToggleLeft className="w-4 h-4 text-amber-600" />
-                          <span>Publish Live</span>
-                        </>
-                      )}
-                    </button>
+                        )}
+                      </button>
 
-                    <button
-                      id={`delete-course-btn-${course.id}`}
-                      onClick={() => handleDeleteClick(course)}
-                      title="Delete Course"
-                      className="p-1.5 rounded-xl text-red-500 hover:text-white hover:bg-red-500 border border-red-200 hover:border-red-500 transition-colors inline-flex items-center cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <button
+                        id={`delete-course-btn-${course.id}`}
+                        onClick={() => handleDeleteClick(course)}
+                        title="Delete Course"
+                        className="p-2 rounded-xl text-red-500 hover:text-white hover:bg-red-500 border border-red-200 hover:border-red-500 transition-colors inline-flex items-center cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
