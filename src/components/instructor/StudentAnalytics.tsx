@@ -30,7 +30,7 @@ export const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ analytics })
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fadeIn w-full">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border border-[#E2E8F0] rounded-2xl shadow-sm">
