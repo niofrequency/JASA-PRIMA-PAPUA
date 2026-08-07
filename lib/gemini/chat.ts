@@ -1,11 +1,11 @@
-import { getGeminiClient, GEMINI_MODEL } from "./client.js";
+import { getGeminiClient, GEMINI_MODEL, generateContentWithRetry } from "./client.js";
 
 export interface ChatTurn {
   role: "user" | "ai";
   text: string;
 }
 
-/** 
+/**
  * Answers a learner's question about the current lesson, grounded strictly
  * in the lesson content passed in (no outside knowledge for safety-critical
  * claims — see prompt below). Runs server-side only; the frontend never
@@ -50,7 +50,7 @@ ${historyText || "(none yet)"}
 LEARNER QUESTION:
 ${question}`;
 
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: GEMINI_MODEL,
     contents: prompt,
   });
