@@ -32,7 +32,7 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
   ];
 
   return (
-    <aside className="w-full md:w-64 bg-[#E2E8F0] border-r border-[#CBD5E1] flex flex-col justify-between p-4 shrink-0 text-[#0F172A]">
+    <aside className="w-full md:w-80 bg-[#E2E8F0] border-r border-[#CBD5E1] flex flex-col justify-between p-4 shrink-0 text-[#0F172A]">
       <div className="space-y-6">
         
         {/* Student Profile Card */}
@@ -95,4 +95,3 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
     </aside>
   );
 };
-
